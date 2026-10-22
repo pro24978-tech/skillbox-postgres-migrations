@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16
+    container_name: skillbox_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: >
+      postgres
+      -c log_destination=stderr
+      -c logging_collector=on
+      -c log_directory=/var/log/postgresql
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres_logs:/var/log/postgresql
+    networks:
+      - app_network
+
+  web:
+    build: .
+    container_name: skillbox_flask
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    volumes:
+      - .:/app
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge
